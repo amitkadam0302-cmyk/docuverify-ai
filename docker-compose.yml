@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: docuverify_ai
+      POSTGRES_USER: docuverify
+      POSTGRES_PASSWORD: docuverify
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docuverify -d docuverify_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg2://docuverify:docuverify@postgres:5432/docuverify_ai
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000
+      JWT_SECRET: change-me-before-production-with-a-long-random-value
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      UPLOAD_DIR: uploads
+      STORAGE_PROVIDER: local
+      STORAGE_CACHE_DIR: storage_cache
+      PROCESSED_DIR: processed
+      GENERATED_QR_DIR: generated_qr
+      FRONTEND_URL: http://localhost:5173
+      PUBLIC_BASE_URL: http://localhost:8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/reports:/app/reports
+      - ./backend/processed:/app/processed
+      - ./backend/generated_qr:/app/generated_qr
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: http://localhost:8000/api
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    profiles:
+      - tools
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@docuverify.local
+      PGADMIN_DEFAULT_PASSWORD: docuverify
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

@@ -1,0 +1,30 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.production
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+      ALLOWED_ORIGINS: ${FRONTEND_URL}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-supabase}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_BUCKET: ${SUPABASE_BUCKET}
+      CONTACT_EMAIL: ${CONTACT_EMAIL}
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend

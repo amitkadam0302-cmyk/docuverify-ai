@@ -15,32 +15,24 @@ from app.routes import api_router
 settings = get_settings()
 
 
-def create_app() -> FastAPI:
-    """Create and configure the FastAPI application."""
-    app = FastAPI(
-        title=settings.app_name,
-        version=settings.app_version,
-        debug=settings.debug,
-        docs_url="/docs",
-        redoc_url="/redoc",
-    )
+app = FastAPI(
+    title="DocuVerify AI API",
+    version=settings.app_version,
+    debug=settings.debug,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+)
 
-    init_monitoring()
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.allowed_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
 
-    register_exception_handlers(app)
-    register_production_middleware(app)
-    register_development_bootstrap(app)
-    app.include_router(api_router, prefix=settings.api_prefix)
-    mount_static_directories(app)
+@app.get("/")
+def root() -> dict[str, str]:
+    return {"message": "DocuVerify AI API is running"}
 
-    return app
+
+@app.get("/api/health")
+def health_check() -> dict[str, str]:
+    return {"status": "ok"}
 
 
 def register_development_bootstrap(app: FastAPI) -> None:
@@ -124,5 +116,19 @@ def register_exception_handlers(app: FastAPI) -> None:
             content={"detail": detail, "path": str(request.url.path)},
         )
 
+init_monitoring()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-app = create_app()
+register_exception_handlers(app)
+register_production_middleware(app)
+register_development_bootstrap(app)
+
+# Keep application-level health routes above, then attach the feature routers.
+app.include_router(api_router, prefix=settings.api_prefix)
+mount_static_directories(app)

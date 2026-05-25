@@ -22,3 +22,4 @@ pyzbar
 reportlab
 sentry-sdk
 boto3
+alembic
